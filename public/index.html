@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Chat</title>
+</head>
+
+<body>
+  <div>
+    <h1>Real-Time Chat</h1>
+    <div>
+      <label for="username">Username: </label>
+      <input type="text" id="username">
+      <button onclick="joinChat()">Join Chat</button>
+    </div>
+    <div id="chat" style="display: none;">
+      <div id="userList"></div>
+      <div id="messages"></div>
+      <div>
+        <input type="text" id="messageInput" placeholder="Type a message...">
+        <select id="userSelect">
+          <option value="">Select a user</option>
+        </select>
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    function joinChat() {
+      const username = document.getElementById('username').value;
+      if (username.trim() !== '') {
+        socket.emit('join', username);
+        document.getElementById('username').setAttribute('disabled', true);
+        document.getElementById('chat').style.display = 'block';
+      }
+    }
+
+    function displayActiveUsers(users) {
+      const userSelect = document.getElementById('userSelect');
+      userSelect.innerHTML = '<option value="">Select a user</option>';
+      users.forEach((user) => {
+        if (user !== socket.username) {
+          const option = document.createElement('option');
+          option.value = user;
+          option.textContent = user;
+          userSelect.appendChild(option);
+        }
+      });
+    }
+
+    function sendMessage() {
+      const userSelect = document.getElementById('userSelect');
+      const selectedUser = userSelect.value;
+      const message = document.getElementById('messageInput').value;
+      if (selectedUser && message.trim() !== '') {
+        socket.emit('sendMessage', {
+          recipient: selectedUser,
+          message: message
+        });
+        const messagesDiv = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = `[You]: ${message}`;
+        messagesDiv.appendChild(messageDiv);
+        document.getElementById('messageInput').value = '';
+      }
+    }
+
+    socket.on('activeUsers', (users) => {
+      displayActiveUsers(users);
+    });
+
+    socket.on('chatMessage', (data) => {
+      const { message } = data;
+      console.log(data)
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.textContent = `${message}`;
+      messagesDiv.appendChild(messageDiv);
+    });
+  </script>
+</body>
+
+</html>
